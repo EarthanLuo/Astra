@@ -1,0 +1,15 @@
+build/
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.exe
+.DS_Store
+*.swp
+*.swo
+*~
+.compile_commands.json
+logs/
+output/
+.cache/

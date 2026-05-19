@@ -1,0 +1,4 @@
+include(GNUInstallDirs)
+
+install(TARGETS gs_livo RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY config/ DESTINATION ${CMAKE_INSTALL_DATADIR}/gs-livo/config)

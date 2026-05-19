@@ -1,0 +1,3 @@
+add_library(orchestrator_lib INTERFACE)
+target_include_directories(orchestrator_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(orchestrator_lib INTERFACE ekf_lib sensor_lib imu_lib lio_lib gs_lib vio_lib map_lib)

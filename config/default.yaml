@@ -1,0 +1,68 @@
+# GS-LIVO Default Configuration
+
+log_level: info
+mode: LIVO
+
+use_lio: true
+use_vio: true
+use_3dgs: true
+
+lidar:
+  model: livox_avia
+  max_range: 100.0
+  min_range: 0.5
+  max_points: 100000
+  time_offset: 0.0
+
+imu:
+  rate: 200
+  gyro_noise: 1.7e-4
+  acc_noise: 2.0e-3
+  gyro_bias_noise: 1.0e-6
+  acc_bias_noise: 1.0e-4
+
+camera:
+  width: 640
+  height: 480
+  fx: 320.0
+  fy: 320.0
+  cx: 320.0
+  cy: 240.0
+  k1: 0.0
+  k2: 0.0
+  p1: 0.0
+  p2: 0.0
+
+lio:
+  voxel_size: 0.5
+  max_points_per_voxel: 20
+  planer_threshold: 0.1
+  min_plane_points: 5
+
+vio:
+  gs_iterations: 4
+  border: 10
+  img_downsample: 1
+  gs_opacity_thresh: 0.01
+  gs_scale_thresh: 0.1
+  gs_max_points: 50000
+
+extrinsics:
+  lidar_to_imu:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+  camera_to_imu:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+
+output:
+  dir: ./output
+  log_dir: ./logs
