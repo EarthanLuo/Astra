@@ -69,7 +69,8 @@
 | 线程管理 | ROS 回调 + OpenMP | std::jthread + std::stop_token |
 | 配置 | roslaunch + yaml | 纯 YAML |
 | 构建 | catkin + 绝对路径 | 现代 CMake + add_subdirectory |
-| 测试 | 零 | Catch2 单元测试 + 轨迹回归 |
+| 依赖 | ROS 生态 | 系统包 (find_package)，CUDA/OpenCV/LibTorch 可选 |
+| 测试 | 零 | GTest 单元测试 + 轨迹回归 |
 
 ---
 
@@ -180,8 +181,9 @@
 **职责:** YAML 配置解析，全局可访问。
 
 - 单例模式
-- 解析传感器标定、算法参数、运行模式
-- 支持运行时参数重载 (通过 ZeroMQ command socket)
+- 解析传感器标定、算法参数、运行模式（使用 yaml-cpp 系统包）
+- 配置结构使用嵌套 YAML (extrinsics.lidar_to_imu.x 等)
+- 支持运行时参数重载 (通过 ZeroMQ command socket, 可选)
 
 ### 2.12 Logger
 

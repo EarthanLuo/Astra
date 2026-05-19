@@ -2,7 +2,7 @@
 
 ## 1. 消息类型定义 (替代 ROS msg)
 
-所有消息类型位于 `src/core/types.h`，C++20 标准布局类型。
+所有消息类型位于 `src/core/types.h`，C++20 标准布局类型。OpenCV 通过 `GS_LIVO_HAS_OPENCV` 宏可选引入。
 
 ```cpp
 // ============================================================
@@ -10,10 +10,13 @@
 // ============================================================
 #pragma once
 #include <Eigen/Dense>
-#include <vector>
-#include <cstdint>
 #include <array>
+#include <cstdint>
+#include <string>
+#include <vector>
+#ifdef GS_LIVO_HAS_OPENCV
 #include <opencv2/core.hpp>
+#endif
 
 namespace gs_livo {
 
@@ -59,7 +62,9 @@ struct ProcessedLidarScan {
 // --- 图像数据 ---
 struct ImageData {
     Timestamp  timestamp;
+#ifdef GS_LIVO_HAS_OPENCV
     cv::Mat    image;    // 灰度图 CV_8UC1
+#endif
     int        width;
     int        height;
 };
@@ -131,7 +136,9 @@ struct LioResult {
 struct VioResult {
     StatesGroup corrected_state;
     bool        success;
+#ifdef GS_LIVO_HAS_OPENCV
     cv::Mat     rendered_image;  // 3DGS 渲染图
+#endif
     double      photometric_error;
     int         gs_point_count;
     int         new_points_added;

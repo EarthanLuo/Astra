@@ -94,16 +94,23 @@ gs-livo/
 # CMakeLists.txt (顶层)
 # ============================================================
 cmake_minimum_required(VERSION 3.24)
-project(gs-livo VERSION 0.1.0 LANGUAGES CXX CUDA)
+project(gs-livo VERSION 0.1.0 LANGUAGES CXX)
 
-# --- C++ Standard ---
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 20)
-set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# --- Build type ---
+# CUDA is optional — only enable when toolkit is installed (Phase 5+)
+find_package(CUDAToolkit QUIET)
+if(CUDAToolkit_FOUND)
+    enable_language(CUDA)
+    set(CMAKE_CUDA_STANDARD 20)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    message(STATUS "CUDA found: ${CUDAToolkit_VERSION}")
+else()
+    message(STATUS "CUDA not found — CUDA targets will be skipped")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
@@ -121,7 +128,6 @@ option(GS_LIVO_BUILD_VIEWER  "Build viewer" OFF)
 option(GS_LIVO_USE_SANITIZER "Enable sanitizers (debug builds)" OFF)
 
 # --- Dependencies ---
-# 此函数设置所有 find_package / FetchContent
 gs_livo_setup_dependencies()
 
 # --- Subdirectories ---
@@ -197,71 +203,52 @@ endfunction()
 # cmake/Dependencies.cmake
 # ============================================================
 function(gs_livo_setup_dependencies)
-    # --- Eigen3 (header-only, 必须) ---
-    # 优先 find_package，fallback FetchContent
-    find_package(Eigen3 3.4 QUIET)
-    if(NOT Eigen3_FOUND)
-        include(FetchContent)
-        FetchContent_Declare(eigen
-            GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-            GIT_TAG 3.4.0
-        )
-        FetchContent_MakeAvailable(eigen)
-    endif()
+    # --- Eigen3 (required) ---
+    find_package(Eigen3 3.4 REQUIRED)
+    message(STATUS "Eigen3: ${EIGEN3_VERSION_STRING}")
 
-    # --- OpenCV (图像处理) ---
-    find_package(OpenCV 4 REQUIRED
-        COMPONENTS core imgproc highgui
-    )
+    # --- spdlog (required) ---
+    find_package(spdlog REQUIRED)
+    message(STATUS "spdlog: ${spdlog_VERSION}")
 
-    # --- spdlog (日志) ---
-    find_package(spdlog QUIET)
-    if(NOT spdlog_FOUND)
-        include(FetchContent)
-        FetchContent_Declare(spdlog
-            GIT_REPOSITORY https://github.com/gabime/spdlog.git
-            GIT_TAG v1.12.0
-        )
-        FetchContent_MakeAvailable(spdlog)
-    endif()
+    # --- yaml-cpp (required) ---
+    find_package(yaml-cpp REQUIRED)
+    message(STATUS "yaml-cpp: found")
 
-    # --- yaml-cpp (配置) ---
-    find_package(yaml-cpp QUIET)
-    if(NOT yaml-cpp_FOUND)
-        include(FetchContent)
-        FetchContent_Declare(yaml-cpp
-            GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-            GIT_TAG 0.8.0
-        )
-        FetchContent_MakeAvailable(yaml-cpp)
-    endif()
-
-    # --- ZeroMQ (可视化 IPC) ---
-    find_package(cppzmq QUIET)
-    if(NOT cppzmq_FOUND)
-        include(FetchContent)
-        FetchContent_Declare(cppzmq
-            GIT_REPOSITORY https://github.com/zeromq/cppzmq.git
-            GIT_TAG v4.10.0
-        )
-        FetchContent_MakeAvailable(cppzmq)
-    endif()
-
-    # --- LibTorch (从官网下载) ---
-    # 用户需设置 LibTorch_DIR 或下载到本地
-    if(DEFINED ENV{LibTorch_DIR})
-        set(LibTorch_DIR $ENV{LibTorch_DIR})
-    endif()
-    find_package(Torch REQUIRED)
-
-    # --- lib3dgs (git submodule, CUDA) ---
-    if(EXISTS "${CMAKE_SOURCE_DIR}/external/lib3dgs/CMakeLists.txt")
-        add_subdirectory(external/lib3dgs)
+    # --- OpenCV (Phase 2+, optional) ---
+    find_package(OpenCV 4 QUIET COMPONENTS core imgproc highgui)
+    if(OpenCV_FOUND)
+        message(STATUS "OpenCV: ${OpenCV_VERSION}")
+        add_compile_definitions(GS_LIVO_HAS_OPENCV)
     else()
-        message(FATAL_ERROR
-            "lib3dgs submodule not found. Run:\n"
-            "  git submodule update --init --recursive"
-        )
+        message(STATUS "OpenCV: not found (will skip camera driver)")
+    endif()
+
+    # --- ZeroMQ (Phase 8+, optional) ---
+    find_package(cppzmq QUIET)
+    if(cppzmq_FOUND)
+        message(STATUS "cppzmq: found")
+    else()
+        message(STATUS "cppzmq: not found (will skip ZMQ visualizer)")
+    endif()
+
+    # --- LibTorch (Phase 5+, optional) ---
+    if(DEFINED ENV{LibTorch_DIR})
+        find_package(Torch QUIET)
+        if(Torch_FOUND)
+            message(STATUS "LibTorch: found")
+        endif()
+    endif()
+
+    # --- GoogleTest (tests, optional) ---
+    if(GS_LIVO_BUILD_TESTS)
+        find_package(GTest QUIET)
+        if(GTest_FOUND)
+            message(STATUS "GTest: found")
+        else()
+            message(STATUS "GTest: not found (tests disabled)")
+            set(GS_LIVO_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
+        endif()
     endif()
 endfunction()
 ```
@@ -406,18 +393,16 @@ set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89" CACHE STRING "CUDA architectures")
 
 ## 7. 测试框架
 
-### 7.1 Catch2
+### 7.1 GTest (Google Test)
 
 ```cmake
-# cmake/Dependencies.cmake 中添加:
-find_package(Catch2 QUIET)
-if(NOT Catch2_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(catch2
-        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-        GIT_TAG v3.5.0
-    )
-    FetchContent_MakeAvailable(catch2)
+# cmake/Dependencies.cmake 中已有:
+find_package(GTest QUIET)
+if(GTest_FOUND)
+    message(STATUS "GTest: found")
+else()
+    message(STATUS "GTest: not found (tests disabled)")
+    set(GS_LIVO_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 endif()
 ```
 
@@ -427,8 +412,6 @@ endif()
 # ============================================================
 # tests/CMakeLists.txt
 # ============================================================
-find_package(Catch2 REQUIRED)
-
 add_subdirectory(ekf)
 add_subdirectory(map)
 add_subdirectory(sensor)
@@ -438,8 +421,8 @@ add_executable(integration_test
     integration/test_sync_pipeline.cpp
     integration/test_lio_vio_loop.cpp
 )
-target_link_libraries(integration_test PRIVATE Catch2::Catch2 orchestrator_lib)
-catch_discover_tests(integration_test)
+target_link_libraries(integration_test PRIVATE GTest::gtest GTest::gtest_main orchestrator_lib)
+gtest_discover_tests(integration_test)
 ```
 
 ```cmake
@@ -451,8 +434,8 @@ add_executable(ekf_test
     test_ekf_predict.cpp
     test_ekf_update.cpp
 )
-target_link_libraries(ekf_test PRIVATE Catch2::Catch2 ekf_lib)
-catch_discover_tests(ekf_test)
+target_link_libraries(ekf_test PRIVATE GTest::gtest GTest::gtest_main ekf_lib)
+gtest_discover_tests(ekf_test)
 ```
 
 ### 7.3 测试类型清单
@@ -492,19 +475,19 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          libopencv-dev \
           libeigen3-dev \
-          libyaml-cpp-dev \
           libspdlog-dev \
-          libzmq3-dev \
+          libyaml-cpp-dev \
+          libopencv-dev \
+          libgtest-dev \
           ninja-build
 
-    - name: Setup CUDA
+    - name: Setup CUDA (optional)
       uses: Jimver/cuda-toolkit@v0.2
       with:
         cuda: '11.8'
 
-    - name: Download LibTorch
+    - name: Download LibTorch (optional)
       run: |
         wget https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.0.1.zip
         unzip libtorch-cxx11-abi-shared-with-deps-2.0.1.zip
@@ -539,29 +522,32 @@ BasedOnStyle: Google
 IndentWidth: 4
 ColumnLimit: 100
 AllowShortFunctionsOnASingleLine: None
+AccessModifierOffset: -4
 ```
 
 ## 9. 构建命令速查
 
 ```bash
-# 完整构建
-mkdir build && cd build
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build . --parallel
+# 完整构建 (不带 CUDA)
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+
+# 运行
+./build/src/gs_livo --config config/default.yaml
 
 # Debug 构建 + ASAN
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGS_LIVO_USE_SANITIZER=ON
-cmake --build . --parallel
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGS_LIVO_USE_SANITIZER=ON
+cmake --build build --parallel
 
 # 运行测试
 cd build && ctest --output-on-failure
 
 # 运行单个测试
-./build/tests/ekf/ekf_test "EKF predict"
+./build/tests/ekf/ekf_test --gtest_filter="EKF predict"
 
 # 覆盖 CUDA 架构
-cmake .. -DGS_LIVO_CUDA_ARCH="75;80"
+cmake -B build -DGS_LIVO_CUDA_ARCH="75;80"
 
 # 指定 LibTorch 路径
-cmake .. -DLibTorch_DIR=/path/to/libtorch
+cmake -B build -DLibTorch_DIR=/path/to/libtorch
 ```

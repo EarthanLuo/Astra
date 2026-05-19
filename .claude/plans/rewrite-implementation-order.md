@@ -61,33 +61,53 @@ Phase 4: LIO             Phase 5: 3DGS               Phase 6: VIO
 - [x] `src/main.cpp` — 空的入口，仅加载配置 + 日志
 - [x] 安装 clang-format + .clang-format
 - [x] 安装 GTest (find_package) + 空测试
+- [x] cmake/Sanitizers.cmake — ASAN/UBSan 支持 (额外产出)
 
 ### 验证条件
 
 ```
 $ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 $ cmake --build build --parallel
-$ ./build/gs_livo --config config/default.yaml
+$ ./build/src/gs_livo --config config/default.yaml
   [2026-05-19 10:00:00] [info] GS-LIVO v0.1.0 starting...
 $ cd build && ctest
-  No tests were found  (测试框架就绪但无测试)
+  No tests were found!!!  (GTest 框架就绪但无测试)
 ```
 
 ### 产出文件
 
 ```
-src/core/types.h
-src/core/config.h + config.cpp
-src/core/concurrent_queue.h
-src/core/logger.h
-src/main.cpp
 CMakeLists.txt
 cmake/CompilerOptions.cmake
 cmake/CudaOptions.cmake
 cmake/Dependencies.cmake
 cmake/InstallRules.cmake
+cmake/Sanitizers.cmake       (额外)
+src/main.cpp
+src/core/types.h
+src/core/config.h + config.cpp
+src/core/concurrent_queue.h
+src/core/logger.h
+src/CMakeLists.txt
+src/core/CMakeLists.txt
+src/{interfaces,ekf,sensor,imu,lio,map,gs,vio,orchestrator}/CMakeLists.txt  (占位)
 config/default.yaml
+tests/CMakeLists.txt          (GTest 占位)
+.clang-format
 ```
+
+### 实施偏差
+
+| 计划 | 实际 | 原因 |
+|------|------|------|
+| FetchContent 自动下载依赖 | `find_package` 系统包 | FetchContent 国内极慢 (4s vs timeout) |
+| Catch2 测试框架 | GTest (Google Test) | ECC C++ 规则 (`~/.claude/rules/ecc/cpp/testing.md`) |
+| C++ 编译器默认 .cpp 风格 | clang-format (Google style, 4-space indent) | ECC C++ 规则 |
+| CUDA 在顶层 LANGUAGES | `find_package(CUDAToolkit QUIET)` 动态检测 | 早期阶段不需要 GPU |
+| OpenCV 必需依赖 | `#ifdef GS_LIVO_HAS_OPENCV` 可选 | Phase 2+ 才用 |
+| ZeroMQ/LibTorch 必需 | 可选，环境变量触发 | Phase 5+/8+ 才用 |
+| 无 sanitizer 支持 | Sanitizers.cmake (ASAN/UBSan) | 调试需要 |
+| 可执行路径 `./build/src/gs_livo` | `./build/src/gs_livo` | CMake add_subdirectory 嵌套 |
 
 ---
 
@@ -113,7 +133,7 @@ config/default.yaml
 ### 验证条件
 
 ```
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag
   [2026-05-19 10:00:00] [info] Sensor sync: 150 packets in, 148 synced, 2 dropped
 $ cd build && ctest -R sensor
   All tests passed (4 passed)
@@ -150,7 +170,7 @@ $ cd build && ctest -R sensor
 ### 验证条件
 
 ```
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag
   [info] IMU propagator started (250 Hz)
   [info] State: pos=(0.01, 0.02, -0.01) vel=(0.1, 0.0, 0.0)
   ...
@@ -192,7 +212,7 @@ $ # 压力测试: 100 线程并发读，1 线程写
 ### 验证条件
 
 ```
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag
   [info] LIO enabled
   [info] LIO: match_count=845 residual=0.023
   [info] State: pos=(1.23, 4.56, -0.78)
@@ -238,7 +258,7 @@ $ cd build && ctest -R "lio|map|octree"
 $ cmake -B build ... -DCMAKE_BUILD_TYPE=Release
 $ cmake --build build --parallel
 $ # lib3dgs 成功作为子项目编译
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag
   [info] 3DGS initialized (CUDA compute cap 8.6)
   [info] GS render: 1280x720, 15000 points, 4.2ms (compute)
   [info] GS render: 1280x720, 15230 points, 4.1ms (compute)
@@ -349,7 +369,7 @@ void VIOEngine::ekfUpdate(
 ### 验证条件
 
 ```
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag
   [info] VIO enabled
   [info] Frame 10: photometric_error=0.042 gs_points=15230
   [info] Frame 20: photometric_error=0.038 gs_points=16541
@@ -423,7 +443,7 @@ void Orchestrator::runOnce() {
 ### 验证条件
 
 ```
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag
   # 实时输出:
   [info] Frame   1 | LIO: 845 pts | VIO: err=0.042 | pos=(0.01, 0.02, 0.00)
   [info] Frame  10 | LIO: 912 pts | VIO: err=0.038 | pos=(0.12, 0.45, -0.01)
@@ -456,7 +476,7 @@ $ cd build && ctest
 
 ```
 # 终端 1: SLAM 进程
-$ ./build/gs_livo --config config/default.yaml --bag test_data.bag --viz tcp://*:5555
+$ ./build/src/gs_livo --config config/default.yaml --bag test_data.bag --viz tcp://*:5555
 
 # 终端 2: 外部 viewer
 $ python scripts/viewer.py --endpoint tcp://localhost:5555
