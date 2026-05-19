@@ -36,13 +36,13 @@ function(gs_livo_setup_dependencies)
         endif()
     endif()
 
-    # --- Catch2 (tests, optional) ---
+    # --- GoogleTest (tests, optional) ---
     if(GS_LIVO_BUILD_TESTS)
-        find_package(Catch2 3 QUIET)
-        if(Catch2_FOUND)
-            message(STATUS "Catch2: found")
+        find_package(GTest QUIET)
+        if(GTest_FOUND)
+            message(STATUS "GTest: found")
         else()
-            message(STATUS "Catch2: not found (tests disabled)")
+            message(STATUS "GTest: not found (tests disabled)")
             set(GS_LIVO_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
         endif()
     endif()

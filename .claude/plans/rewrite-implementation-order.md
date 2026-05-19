@@ -53,14 +53,14 @@ Phase 4: LIO             Phase 5: 3DGS               Phase 6: VIO
 
 ### 任务清单
 
-- [ ] 创建顶层 CMakeLists.txt + cmake/ 辅助模块
-- [ ] `src/core/types.h` — 所有消息类型 (ImuData, LidarScan, ImageData, StatesGroup, SyncPacket, etc.)
-- [ ] `src/core/config.h + .cpp` — ConfigManager + 配置结构体，YAML 解析
-- [ ] `src/core/concurrent_queue.h` — 线程安全队列模板
-- [ ] `src/core/logger.h` — spdlog 包装
-- [ ] `src/main.cpp` — 空的入口，仅加载配置 + 日志
-- [ ] 安装 clang-format + .clang-format
-- [ ] 安装 Catch2 (FetchContent) + 空测试
+- [x] 创建顶层 CMakeLists.txt + cmake/ 辅助模块
+- [x] `src/core/types.h` — 所有消息类型 (ImuData, LidarScan, ImageData, StatesGroup, SyncPacket, etc.)
+- [x] `src/core/config.h + .cpp` — ConfigManager + 配置结构体，YAML 解析
+- [x] `src/core/concurrent_queue.h` — 线程安全队列模板
+- [x] `src/core/logger.h` — spdlog 包装
+- [x] `src/main.cpp` — 空的入口，仅加载配置 + 日志
+- [x] 安装 clang-format + .clang-format
+- [x] 安装 GTest (find_package) + 空测试
 
 ### 验证条件
 

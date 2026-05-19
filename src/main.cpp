@@ -1,9 +1,12 @@
-#include "core/config.h"
-#include "core/logger.h"
 #include <spdlog/spdlog.h>
+
 #include <cstdlib>
 
-int main(int argc, char* argv[]) {
+#include "core/config.h"
+#include "core/logger.h"
+
+int main(int argc, char* argv[])
+{
     auto logger = gs_livo::setupLogger("gs_livo", "info");
 
     std::filesystem::path config_path = "config/default.yaml";
@@ -22,8 +25,8 @@ int main(int argc, char* argv[]) {
 
     spdlog::info("GS-LIVO v0.1.0 starting...");
     spdlog::info("Mode: {}", static_cast<int>(cfg.config().mode));
-    spdlog::info("LIO: {}, VIO: {}, 3DGS: {}",
-        cfg.config().use_lio, cfg.config().use_vio, cfg.config().use_3dgs);
+    spdlog::info("LIO: {}, VIO: {}, 3DGS: {}", cfg.config().use_lio, cfg.config().use_vio,
+                 cfg.config().use_3dgs);
 
     return EXIT_SUCCESS;
 }
