@@ -1,0 +1,21 @@
+{
+    "permissions": {
+        "allow": [
+            "Read",
+            "Grep",
+            "Glob",
+            "WebSearch",
+            "WebFetch",
+            "Bash"
+        ],
+        "deny": [
+            "Edit",
+            "Write",
+            "NotebookEdit"
+        ]
+    },
+    "models": {
+        "plan": "opus",
+        "default": "sonnet"
+    }
+}
